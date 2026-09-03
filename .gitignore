@@ -1,0 +1,19 @@
+# 编译产物
+build/
+Debug/
+Release/
+Listings/
+Objects/
+*.o
+*.d
+*.elf
+*.hex
+*.bin
+*.map
+
+# 常见临时文件
+*.log
+*.tmp
+*.bak
+Thumbs.db
+.DS_Store
