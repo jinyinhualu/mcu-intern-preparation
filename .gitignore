@@ -10,6 +10,7 @@ Objects/
 *.hex
 *.bin
 *.map
+*.exe
 
 # 常见临时文件
 *.log
