@@ -52,7 +52,7 @@ typedef struct {
 int main(void)
 {
     printf("Size of PacketType: %zu\n", sizeof(PacketType));                                                                                                                    // 4
-    printf("Size of MotorInfo: %zu\n", sizeof(MotorInfo));                                                                                                                      // 2
+    printf("Size of MotorInfo: %zu\n", sizeof(MotorInfo));                                                                                                                      // 4
     printf("Size of Payload: %zu\n", sizeof(Payload));                                                                                                                          // 8
 
 
