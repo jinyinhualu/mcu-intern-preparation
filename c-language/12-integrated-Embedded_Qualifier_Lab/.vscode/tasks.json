@@ -1,0 +1,33 @@
+{
+    "tasks": [
+        {
+            "type": "cppbuild",
+            "label": "Build embedded qualifier lab",
+            "command": "E:\\MinGW\\mingw64\\bin\\gcc.exe",
+            "args": [
+                "-fdiagnostics-color=always",
+                "-Wall",
+                "-Wextra",
+                "-std=c11",
+                "-g",
+                "main.c",
+                "board.c",
+                "app.c",
+                "-o",
+                "embedded_qualifier_lab.exe"
+            ],
+            "options": {
+                "cwd": "${fileDirname}"
+            },
+            "problemMatcher": [
+                "$gcc"
+            ],
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
+            "detail": "Builds the full multi-file lab instead of only the active C file."
+        }
+    ],
+    "version": "2.0.0"
+}
