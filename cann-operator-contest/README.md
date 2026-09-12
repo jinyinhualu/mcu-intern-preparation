@@ -49,9 +49,13 @@ Device 侧：
 - `problems/addcmul.md`：围绕 CANNJudge `addcmul` 题目的拆解和复盘。
 - `notes/mental-model.md`：CANN 算子开发的理解笔记。
 - `notes/addcmul-quickstart.md`：围绕 AddCMul 的快速入门路线。
-- `notes/template-walkthrough.md`：围绕 CANNJudge 空模板的文件职责导读。
-- `notes/compile-guide.md`：记录 AddCMul 模板的编译命令、当前断点和后续排错路线。
-- `notes/no-cann-practice.md`：没有 CANN/NPU 环境时的本地模拟练习路线。
+- `notes/addcmul/addcmul-study-log.md`：持续记录 AddCMul 的练习过程、已掌握内容、纠错点和下一步。
+- `notes/addcmul/addcmul-empty-template-analysis.md`：针对实际测试空工程的逐文件职责、缺口和实现顺序分析。
+- `notes/addcmul/template-walkthrough.md`：围绕 CANNJudge 空模板的文件职责导读。
+- `notes/addcmul/compile-guide.md`：记录 AddCMul 模板的编译命令、当前断点和后续排错路线。
+- `notes/addcmul/no-cann-practice.md`：没有 CANN/NPU 环境时的本地模拟练习路线。
+- `notes/addrmsnorm/addrmsnorm-study-log.md`：AddRmsNorm 的公式、按最后一维归约、输出形状、dtype、易错点和自测题学习日志。
+- `tools/addcmul_cpu_basic.cpp`：AddCMul 同 shape、连续内存的 C++ 最小实现。
 - `tools/addcmul_cpu_sim.py`：纯 Python AddCMul 广播、tiling、尾块模拟器。
 
 ## 记录规则
