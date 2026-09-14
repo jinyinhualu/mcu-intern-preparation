@@ -2,51 +2,84 @@
 
 #include <string.h>
 
-size_t command_split_line(char *line,
-                          const char *argv[],
-                          size_t argv_capacity)
+size_t command_split_line(char *line, const char *argv[], size_t argv_capacity)
 {
-    (void)line;
-    (void)argv;
-    (void)argv_capacity;
+    size_t argc = 0;
+    char *token = strtok(line, " \t\r\n");
 
-    line = strtok(line, " \t\n");
-    return 0u;
+    while (token != NULL && argc < argv_capacity)
+    {
+        argv[argc] = token;
+        argc++;
+
+        token = strtok(NULL, " \t\r\n");
+    }
+
+    if (argc > argv_capacity || token != NULL)
+    {
+        return 0;
+    }
+
+    return argc;
 }
 
-const CommandEntry *command_find(const CommandEntry table[],
-                                 size_t table_count,
-                                 const char *name)
+const CommandEntry *command_find(const CommandEntry table[], size_t table_count, const char *name)
 {
-    (void)table;
-    (void)table_count;
-    (void)name;
+    size_t i = 0;
 
-    /* TODO: return the table entry whose name exactly matches name. */
+    for (i = 0; i < table_count; i++)
+    {
+        if (strcmp(table[i].name, name) == 0)
+        {
+            return &table[i];
+        }
+    }
+
     return NULL;
 }
 
-void command_set_log_callback(CommandContext *ctx,
-                              CommandLogCallback callback,
-                              void *user_data)
+void command_set_log_callback(CommandContext *ctx, CommandLogCallback callback, void *user_data)
 {
-    (void)ctx;
-    (void)callback;
-    (void)user_data;
+    if (ctx == NULL)
+    {
+        return;
+    }
 
-    /* TODO: save callback and user_data in the context. */
+    ctx->log_callback = callback;
+    ctx->log_user_data = user_data;
 }
 
-CommandResult command_dispatch(CommandContext *ctx,
-                               const CommandEntry table[],
-                               size_t table_count,
-                               char *line)
+CommandResult command_dispatch(CommandContext *ctx, const CommandEntry table[], size_t table_count, char *line)
 {
-    (void)ctx;
-    (void)table;
-    (void)table_count;
-    (void)line;
+    const char *argv[COMMAND_MAX_ARGS];
+    char *line_copy = line;
 
-    /* TODO: parse, find, call the handler, count, and notify through callback. */
+    size_t argc = command_split_line(line, argv, COMMAND_MAX_ARGS);
+    if (argc == 0) return COMMAND_EMPTY;
+    if (ctx == NULL || table == NULL || table_count == 0 || line == NULL) return COMMAND_INVALID_INPUT;
+
+    const CommandEntry *entry = command_find(table, table_count, argv[0]);
+    if (entry == NULL || entry->handler == NULL)
+    {
+        ctx->log_callback(COMMAND_UNKNOWN, line, ctx->log_user_data);
+
+        return COMMAND_UNKNOWN;
+    }
+
+    else
+    {
+        CommandResult result = entry->handler(ctx, (int)argc, argv);
+        ctx->dispatch_count++;
+        if (result != COMMAND_OK)
+        {
+            ctx->error_count++;
+        }
+        if (ctx->log_callback != NULL)
+        {
+            ctx->log_callback(result, line_copy, ctx->log_user_data);
+        }
+        return result;
+    }
+
     return COMMAND_INVALID_INPUT;
 }

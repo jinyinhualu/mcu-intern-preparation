@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>指针为什么重要：录音</title>
+  <style>
+    :root { color-scheme: light; font-family: "Microsoft YaHei", sans-serif; }
+    body { margin: 0; min-height: 100vh; display: grid; place-items: center; background: #f4f6f8; color: #17212b; }
+    main { width: min(680px, calc(100vw - 40px)); padding: 32px; background: #fff; border: 1px solid #d8dee4; border-radius: 8px; box-shadow: 0 10px 30px rgba(23, 33, 43, .08); }
+    h1 { margin: 0 0 12px; font-size: 26px; }
+    p { line-height: 1.7; }
+    .prompt { padding: 16px; background: #eef5ff; border-left: 4px solid #2878d4; }
+    .controls { display: flex; gap: 12px; flex-wrap: wrap; margin: 24px 0 12px; }
+    button, a { min-height: 42px; padding: 0 18px; border: 1px solid #1e5fa8; border-radius: 6px; font: inherit; cursor: pointer; text-decoration: none; display: inline-flex; align-items: center; justify-content: center; }
+    button { background: #1e5fa8; color: #fff; }
+    button.secondary, a { background: #fff; color: #1e5fa8; }
+    button:disabled { opacity: .45; cursor: not-allowed; }
+    #status { min-height: 1.6em; color: #4b5563; }
+    #download { display: none; }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>录音回答：指针为什么重要</h1>
+    <p class="prompt">请用自己的话回答：指针为什么重要？可以结合数组、函数传参、动态内存、寄存器或嵌入式缓冲区举例。建议回答 60 到 90 秒。</p>
+    <div class="controls">
+      <button id="start">开始录音</button>
+      <button id="stop" class="secondary" disabled>停止录音</button>
+      <a id="download" download="pointer-why-important.webm">下载录音</a>
+    </div>
+    <p id="status">等待开始。浏览器可能会请求麦克风权限。</p>
+  </main>
+  <script>
+    let recorder;
+    let chunks = [];
+    let stream;
+    const startButton = document.querySelector('#start');
+    const stopButton = document.querySelector('#stop');
+    const download = document.querySelector('#download');
+    const status = document.querySelector('#status');
+
+    startButton.addEventListener('click', async () => {
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        chunks = [];
+        recorder = new MediaRecorder(stream);
+        recorder.addEventListener('dataavailable', event => {
+          if (event.data.size > 0) chunks.push(event.data);
+        });
+        recorder.addEventListener('stop', () => {
+          const blob = new Blob(chunks, { type: recorder.mimeType || 'audio/webm' });
+          download.href = URL.createObjectURL(blob);
+          download.style.display = 'inline-flex';
+          status.textContent = '录音完成，可以点击“下载录音”。';
+          stream.getTracks().forEach(track => track.stop());
+        });
+        recorder.start();
+        startButton.disabled = true;
+        stopButton.disabled = false;
+        download.style.display = 'none';
+        status.textContent = '正在录音，请开始回答。';
+      } catch (error) {
+        status.textContent = `无法开始录音：${error.name || error.message}`;
+      }
+    });
+
+    stopButton.addEventListener('click', () => {
+      if (!recorder || recorder.state !== 'recording') return;
+      recorder.stop();
+      startButton.disabled = false;
+      stopButton.disabled = true;
+    });
+  </script>
+</body>
+</html>
