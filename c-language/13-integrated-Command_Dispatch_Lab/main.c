@@ -93,9 +93,7 @@ static void record_log(CommandResult result,
              message != NULL ? message : "");
 }
 
-static CommandResult handle_led(CommandContext *ctx,
-                                int argc,
-                                const char *argv[])
+static CommandResult handle_led(CommandContext *ctx, int argc, const char *argv[])
 {
     if (argc != 2)
     {
@@ -201,6 +199,8 @@ static void run_dispatch_tests(void)
     char unknown[] = "reboot";
     char empty[] = "   ";
 
+    char led_on_again[] = "led on";
+
     puts("\n== Dispatch / callback tests ==");
 
     command_set_log_callback(&ctx, record_log, &recorder);
@@ -253,7 +253,7 @@ static void run_dispatch_tests(void)
               command_dispatch(&ctx,
                                g_command_table,
                                sizeof(g_command_table) / sizeof(g_command_table[0]),
-                               led_on),
+                               led_on_again),
               COMMAND_OK);
 }
 

@@ -52,34 +52,32 @@ void command_set_log_callback(CommandContext *ctx, CommandLogCallback callback, 
 CommandResult command_dispatch(CommandContext *ctx, const CommandEntry table[], size_t table_count, char *line)
 {
     const char *argv[COMMAND_MAX_ARGS];
-    char *line_copy = line;
 
+    if (ctx == NULL || table == NULL || table_count == 0 || line == NULL) return COMMAND_INVALID_INPUT;
     size_t argc = command_split_line(line, argv, COMMAND_MAX_ARGS);
     if (argc == 0) return COMMAND_EMPTY;
-    if (ctx == NULL || table == NULL || table_count == 0 || line == NULL) return COMMAND_INVALID_INPUT;
 
     const CommandEntry *entry = command_find(table, table_count, argv[0]);
     if (entry == NULL || entry->handler == NULL)
     {
-        ctx->log_callback(COMMAND_UNKNOWN, line, ctx->log_user_data);
+        ctx->error_count++;
+
+        if (ctx->log_callback != NULL)
+        {
+            ctx->log_callback(COMMAND_UNKNOWN, "unknown command", ctx->log_user_data);
+        }
 
         return COMMAND_UNKNOWN;
     }
 
-    else
-    {
-        CommandResult result = entry->handler(ctx, (int)argc, argv);
-        ctx->dispatch_count++;
-        if (result != COMMAND_OK)
-        {
-            ctx->error_count++;
-        }
-        if (ctx->log_callback != NULL)
-        {
-            ctx->log_callback(result, line_copy, ctx->log_user_data);
-        }
-        return result;
-    }
 
-    return COMMAND_INVALID_INPUT;
+    CommandResult result = entry->handler(ctx, (int)argc, argv);
+    ctx->dispatch_count++;
+
+    if (ctx->log_callback != NULL)
+    {
+        ctx->log_callback(result, line, ctx->log_user_data);
+    }
+    return result;
+
 }
