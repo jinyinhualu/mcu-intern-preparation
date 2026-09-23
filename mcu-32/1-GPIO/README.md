@@ -271,3 +271,122 @@ int level = (GPIOB->IDR >> 10U) & 1U;
 ```
 
 其中 `0x8` 的四位字段为 `1000b`；按键接地时，松开读 1，按下读 0。当前代码是寄存器推导练习，尚未在真实 STM32 工程中编译、烧录、接线或测量。下一步是用 HAL 配置同一个 PB10，再逐项对照 HAL 生成的寄存器结果。
+
+## 7. HAL GPIO 与寄存器对照（2026-09-23）
+
+参考工程路径：
+
+```text
+D:\2-Projects\1-STM32_Project\Keysking\stm32\study_pro
+```
+
+本轮主要阅读 `Encoder_playing` 工程，芯片为 `STM32F103C8T6`，HAL GPIO 初始化位于 `Core/Src/gpio.c`，宏定义位于 `Core/Inc/main.h`，底层实现位于 `Drivers/STM32F1xx_HAL_Driver/Src/stm32f1xx_hal_gpio.c`。
+
+### PA5 LED：HAL 到 CRL
+
+工程代码：
+
+```c
+HAL_GPIO_WritePin(LED_Test_GPIO_Port, LED_Test_Pin, GPIO_PIN_RESET);
+
+GPIO_InitStruct.Pin = LED_Test_Pin;
+GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+GPIO_InitStruct.Pull = GPIO_NOPULL;
+GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+HAL_GPIO_Init(LED_Test_GPIO_Port, &GPIO_InitStruct);
+```
+
+`main.h` 将 `LED_Test_Pin` 定义为 `GPIO_PIN_5`、端口定义为 `GPIOA`。因此 HAL 最终配置的是 `GPIOA_CRL` bit 23:20：
+
+```text
+GPIO_MODE_OUTPUT_PP = 0x00000001u  → HAL 模式标记，不是 CRL 四位字段
+GPIO_SPEED_FREQ_LOW = 10b
+GPIO_CR_CNF_GP_OUTPUT_PP = 00b
+最终 CRL 字段 = 0010b = 0x2
+```
+
+所以寄存器等价形式为：
+
+```c
+GPIOA->CRL &= ~(0xFU << 20);
+GPIOA->CRL |=  (0x2U << 20);
+GPIOA->BSRR = (1U << (5U + 16U));  // 初始输出低
+```
+
+`HAL_GPIO_WritePin(..., GPIO_PIN_RESET)` 内部使用 `GPIOx->BSRR = GPIO_Pin << 16`，不是直接覆盖整个 `ODR`。
+
+### PB0 按键：HAL 到 CRL 和 EXTI
+
+工程代码：
+
+```c
+GPIO_InitStruct.Pin = Key_Enocder_Pin;
+GPIO_InitStruct.Mode = GPIO_MODE_IT_FALLING;
+GPIO_InitStruct.Pull = GPIO_PULLUP;
+HAL_GPIO_Init(Key_Enocder_GPIO_Port, &GPIO_InitStruct);
+
+HAL_NVIC_SetPriority(EXTI0_IRQn, 0, 0);
+HAL_NVIC_EnableIRQ(EXTI0_IRQn);
+```
+
+`Key_Enocder_Pin` 是 `GPIO_PIN_0`，端口是 `GPIOB`。PB0 使用 `GPIOB_CRL` bit 3:0：
+
+```text
+CRL 字段 = 1000b = 0x8
+CNF = 10 → 上拉/下拉输入
+MODE = 00 → 输入
+ODR0 = 1 → 选择内部上拉
+```
+
+`GPIO_MODE_IT_FALLING = 0x10210000u` 是 HAL 的组合标记，包含：
+
+```text
+0x10000000 → 外部中断/事件模式
+0x00200000 → 下降沿触发
+0x00010000 → 中断模式
+```
+
+它不会被原样写进 `CRL`。HAL 先把 GPIO 部分写成输入上拉，再配置 EXTI：选择 PB0 映射到 EXTI0、设置 `EXTI_FTSR` bit 0、打开 `EXTI_IMR` bit 0，最后由 NVIC 打开 `EXTI0_IRQn`。
+
+### 用户回调不是触发器
+
+工程中自己定义的 `HAL_GPIO_EXTI_Callback()` 只是中断发生后的应用响应函数。硬件触发链路是：
+
+```text
+PB0 从高变低
+→ EXTI0 检测下降沿
+→ EXTI 挂起位 PR0 置位
+→ NVIC 进入 EXTI0_IRQHandler
+→ HAL_GPIO_EXTI_IRQHandler(GPIO_PIN_0)
+→ HAL 清除挂起标志
+→ HAL_GPIO_EXTI_Callback(GPIO_PIN_0)
+```
+
+因此，回调函数不会决定下降沿、上升沿或 NVIC 通道；这些已经由 `GPIO_MODE_IT_FALLING`、HAL 初始化和 NVIC 配置完成。回调只决定事件发生后做什么。
+
+### HAL 读取引脚
+
+工程调用：
+
+```c
+HAL_GPIO_ReadPin(Key_Enocder_GPIO_Port, Key_Enocder_Pin);
+```
+
+HAL 内部等价于检查：
+
+```c
+(GPIOB->IDR & GPIO_PIN_0)
+```
+
+按键接地时：
+
+```text
+松开 → 内部上拉 → IDR0 = 1 → GPIO_PIN_SET
+按下 → 接地       → IDR0 = 0 → GPIO_PIN_RESET
+```
+
+### HAL 与寄存器的边界
+
+HAL 把端口、引脚、模式、上下拉、速度和中断配置封装成结构体和函数；芯片最终仍执行寄存器操作。学习 HAL 时要能反向回答：这句 HAL 修改了哪个寄存器、哪几位、产生了什么硬件行为。
+
+本轮完成了代码阅读和寄存器映射，没有修改外部工程，也没有在真实板卡上重新编译、烧录和测量。下一步可用同一个 PB0，比较 HAL 写法和纯寄存器写法，并单独学习 EXTI/NVIC 的中断服务流程。
