@@ -1,0 +1,6 @@
+interface:
+  display_name: "单片机循序学习"
+  short_description: "从熟悉的外设用法和功能出发，结合手册与代码逐步深入，最后对应寄存器"
+  default_prompt: "请使用 $mcu-stepwise-learning，从我熟悉的用法出发，先讲功能和系统关系，再逐步结合手册与代码，最后讲寄存器。"
+policy:
+  allow_implicit_invocation: true
